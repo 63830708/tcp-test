@@ -71,20 +71,18 @@ int main(int argc, char *argv[])
         case CMD_LOGIN:
         {
             Login login{};
-            recv(sockClient, (char*)&login, sizeof(Login), 0);
+            recv(sockClient, (char*)&login+sizeof(DataHeader), sizeof(Login)-sizeof(DataHeader), 0);
                 LOG << "recv: login    username-" << login.userName << "pwd-" << login.password;
             LoginResult ret{1};
-            send(sockClient, (char*)&header, sizeof(DataHeader), 0);
             send(sockClient, (char*)&ret, sizeof(LoginResult), 0);
         }
             break;
         case CMD_LOGOUT:
         {
             Logout logout{};
-            recv(sockClient, (char*)&logout, sizeof(Logout), 0);
+            recv(sockClient, (char*)&logout+sizeof(DataHeader), sizeof(Logout)-sizeof(DataHeader), 0);
                 LOG << "recv: logout    username-" << logout.useName;
             LogoutResult ret{1};
-            send(sockClient, (char*)&header, sizeof(DataHeader), 0);
             send(sockClient, (char*)&ret, sizeof(LogoutResult), 0);
         }
             break;

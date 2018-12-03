@@ -51,25 +51,20 @@ int main(int argc, char *argv[])
         }
         else if("login" == buf)
         {
-            Login login{"cwj", "pwd123"};
-            DataHeader header{sizeof(Login), CMD_LOGIN};
-            send(sock, (const char*)&header, sizeof(DataHeader), 0);
+            Login login{};
+            strcpy(login.userName, "cwj");
+            strcpy(login.password, "cwj123");
             send(sock, (const char*)&login, sizeof(Login), 0);
-            DataHeader recvHeader{};
             LoginResult loginRet{};
-            recv(sock, (char*)&recvHeader, sizeof(DataHeader), 0);
             recv(sock, (char*)&loginRet, sizeof(LoginResult), 0);
             LOG << "LoginResult: " << loginRet.result;
         }
         else if("logout" == buf)
         {
-            Logout logout = { "cwj" };
-            DataHeader header{sizeof(Logout), CMD_LOGOUT};
-            send(sock, (const char*)&header, sizeof(DataHeader), 0);
+            Logout logout = {};
+            strcpy(logout.useName, "cwj");
             send(sock, (const char*)&logout, sizeof(Logout), 0);
-            DataHeader recvHeader{};
             LogoutResult logoutRet{};
-            recv(sock, (char*)&recvHeader, sizeof(DataHeader), 0);
             recv(sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
             LOG << "LogoutResult: " << logoutRet.result;
         }
