@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <thread>
 
 //#pragma comment(lib, "ws2_32.lib")
 #pragma execution_character_set("utf-8")
@@ -24,6 +25,7 @@ enum CMD
     CMD_LOGIN_RESULT,
     CMD_LOGOUT,
     CMD_LOGOUT_RESULT,
+    CMD_NEW_USER_JOIN,
     CMD_ERROR
 };
 struct DataHeader
@@ -71,7 +73,16 @@ struct LogoutResult: public DataHeader
     int result;
 };
 
-
+struct NewUserJoin: public DataHeader
+{
+    NewUserJoin(int s=0)
+    {
+        len = sizeof(NewUserJoin);
+        cmd = CMD_NEW_USER_JOIN;
+        scok = s;
+    }
+    int scok;
+};
 
 const char *SERVER_IP = "127.0.0.1";//"192.168.1.198";
 const int SERVER_PORT = 8899;

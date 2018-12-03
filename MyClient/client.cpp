@@ -2,9 +2,82 @@
 #include "util.h"
 
 
+int processor(SOCKET sock)
+{
+    DataHeader header = {};
+    int nLen = recv(sock, (char*)&header, sizeof(DataHeader), 0);
+    if(nLen <= 0)
+    {
+        LOG << "recv()<=0 \n";
+        return -1;
+    }
+
+    LOG << "recv: cmd-" << header.cmd << "len-" << header.len << endl;
+    switch(header.cmd)
+    {
+    case CMD_LOGIN_RESULT:
+    {
+        LoginResult loginRet{};
+        recv(sock, (char*)&loginRet+sizeof(DataHeader), sizeof(LoginResult)-sizeof(DataHeader), 0);
+        LOG << "recv: login result-" << loginRet.result << endl;
+    }
+        break;
+    case CMD_LOGOUT_RESULT:
+    {
+        LogoutResult logoutRet{1};
+        recv(sock, (char*)&logoutRet+sizeof(DataHeader), sizeof(LogoutResult)-sizeof(DataHeader), 0);
+        LOG << "recv: logout result-" << logoutRet.result << endl;
+    }
+        break;
+    case CMD_NEW_USER_JOIN:
+    {
+        NewUserJoin userJoin{};
+        recv(sock, (char*)&userJoin+sizeof(DataHeader), sizeof(NewUserJoin)-sizeof(DataHeader), 0);
+        LOG << "recv: newUser    username-" << userJoin.scok << endl;
+    }
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
 
 
 
+
+bool g_bRun = false;
+void cmdThread(SOCKET sock)
+{
+    while(true)
+    {
+        string buf;
+        cin >> buf;
+        if( buf=="exit")
+        {
+            g_bRun = false;
+            LOG << "thread exit.\n";
+            break;
+        }
+        else if(buf=="login")
+        {
+            Login login;
+            strcpy(login.userName, "lyd");
+            strcpy(login.password, "lydmm");
+            send(sock, (const char*)&login, sizeof(Login), 0);
+        }
+        else if(buf=="logout")
+        {
+            Logout logout;
+            strcpy(logout.useName, "lyd");
+            send(sock, (const char*)&logout, sizeof(Logout), 0);
+        }
+        else
+        {
+            LOG << "cmd error.\n";
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -39,38 +112,31 @@ int main(int argc, char *argv[])
         LOG << "connect() succeed.\n";
     }
 
-    while(true)
+    g_bRun = true;
+    std::thread t0(cmdThread, sock);
+    t0.detach();
+
+    while(g_bRun)
     {
-//        char buf[1024] = {0};
-        string buf;
-        cin >> buf;
-        if("exit" == buf)
+        fd_set fdReads;
+        FD_ZERO(&fdReads);
+        FD_SET(sock, &fdReads);
+        timeval t{0, 0};
+        int ret = select(sock, &fdReads, 0, 0, &t);
+        if(ret < 0)
         {
-            LOG << "about to exit.\n";
+            LOG << "select() failed.\n";
             break;
         }
-        else if("login" == buf)
+
+        if(FD_ISSET(sock, &fdReads))
         {
-            Login login{};
-            strcpy(login.userName, "cwj");
-            strcpy(login.password, "cwj123");
-            send(sock, (const char*)&login, sizeof(Login), 0);
-            LoginResult loginRet{};
-            recv(sock, (char*)&loginRet, sizeof(LoginResult), 0);
-            LOG << "LoginResult: " << loginRet.result;
-        }
-        else if("logout" == buf)
-        {
-            Logout logout = {};
-            strcpy(logout.useName, "cwj");
-            send(sock, (const char*)&logout, sizeof(Logout), 0);
-            LogoutResult logoutRet{};
-            recv(sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
-            LOG << "LogoutResult: " << logoutRet.result;
-        }
-        else
-        {
-            LOG << "error command.\n";
+            FD_CLR(sock, &fdReads);
+            if( -1 == processor(sock))
+            {
+                closesocket(sock);
+                break;
+            }
         }
     }
 
@@ -80,5 +146,5 @@ int main(int argc, char *argv[])
 
     LOG << "exit.\n";
     return 0;
-//    return a.exec();
+    //    return a.exec();
 }

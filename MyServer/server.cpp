@@ -126,6 +126,11 @@ int main(int argc, char *argv[])
             }
             else
             {
+                for(auto s: g_clients)
+                {
+                    NewUserJoin userJoin;
+                    send(s, (const char*)&userJoin, sizeof(NewUserJoin), 0);
+                }
                 g_clients.push_back(sockClient);
                 LOG << "client accepted: socket-" << hex<< (int)sockClient
                     << "\tip-" << dec << inet_ntoa(addrClient.sin_addr)
