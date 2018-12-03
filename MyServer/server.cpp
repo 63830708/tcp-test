@@ -49,21 +49,34 @@ int processor(SOCKET sockClient)
     return 0;
 }
 
+void closeSocket(SOCKET s)
+{
+#ifdef _WIN32
+    closesocket(s);
+#else
+    close(s);
+#endif
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-
+#ifdef _WIN32
     // 初始化库
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2,2), &wsaData);
-
+#endif
     // 建立socket
     SOCKET sockServer = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     // 绑定地址
     sockaddr_in addrServer{};
     addrServer.sin_family = AF_INET;
     addrServer.sin_port = htons(SERVER_PORT);
+#ifdef _WIN32
     addrServer.sin_addr.S_un.S_addr = inet_addr(SERVER_IP); // INADDR_ANY
+#else
+    addrServer.sin_addr.s_addr = inet_addr(SERVER_IP);
+#endif
     if(SOCKET_ERROR == bind(sockServer, (sockaddr*)&addrServer, sizeof(sockaddr_in)))
     {
         LOG << "bind() failed." << errno << endl;
@@ -119,10 +132,15 @@ int main(int argc, char *argv[])
             FD_CLR(sockServer, &fdRead);
             sockaddr_in addrClient{};
             int nAddrClientLen = sizeof(sockaddr_in);
-            SOCKET sockClient = accept(sockServer, (sockaddr*)&addrClient, &nAddrClientLen);
-            if(INVALID_SOCKET == sockServer)
+            SOCKET sockClient = INVALID_SOCKET;
+#ifdef _WIN32
+            sockClient = accept(sockServer, (sockaddr*)&addrClient, &nAddrClientLen);
+#else
+            sockClient = accept(sockServer, (sockaddr*)&addrClient, (socklen_t *)&nAddrClientLen);
+#endif
+            if(INVALID_SOCKET == sockClient)
             {
-                LOG << "accept() failed.\n";
+                LOG << "accept() failed.\n" << errno;
             }
             else
             {
@@ -136,36 +154,37 @@ int main(int argc, char *argv[])
                     << "\tip-" << dec << inet_ntoa(addrClient.sin_addr)
                     << ":" << addrClient.sin_port<< endl;
             }
-            --ret;
         }
         // 处理可读的socket
-        for(decltype(fdRead.fd_count) i=0; i<fdRead.fd_count ;i++)
-
+        for (int n = (int)g_clients.size()-1; n >= 0; n--)
         {
-            if(-1 == processor(fdRead.fd_array[i]))
+            if(FD_ISSET(g_clients[n], &fdRead))
             {
-                //auto iter = std::find_if(g_clients.begin(), g_clients.end(), std::bind1st(FD_ISSET(),fdRead.fd_array[i]));
-                auto iter=std::find(g_clients.begin(), g_clients.end(), fdRead.fd_array[i]);
-                if(g_clients.end() != iter)
+                if(-1 == processor(g_clients[n]))
                 {
-                    closesocket(*iter);
-                    g_clients.erase(iter);
-
+                    closeSocket(g_clients[n]);
+                    auto iter = g_clients.begin()+n;
+                    //                    if(iter!=g_clients.end())
+                    {
+                        g_clients.erase(iter);
+                    }
                 }
             }
         }
+
     }
 
     for( auto s: g_clients)
     {
-        closesocket(s);
+        closeSocket(s);
     }
-
-
-
+#ifdef _WIN32
     closesocket(sockServer);
-
     WSACleanup();
+#else
+    close(sockServer);
+#endif
+
 
     LOG << "exit" ;
 

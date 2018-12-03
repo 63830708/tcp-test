@@ -62,14 +62,14 @@ void cmdThread(SOCKET sock)
         else if(buf=="login")
         {
             Login login;
-            strcpy(login.userName, "lyd");
-            strcpy(login.password, "lydmm");
+            strcpy(login.userName, "cwj");
+            strcpy(login.password, "cwj123");
             send(sock, (const char*)&login, sizeof(Login), 0);
         }
         else if(buf=="logout")
         {
             Logout logout;
-            strcpy(logout.useName, "lyd");
+            strcpy(logout.useName, "cwj");
             send(sock, (const char*)&logout, sizeof(Logout), 0);
         }
         else
@@ -82,9 +82,10 @@ void cmdThread(SOCKET sock)
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-
+#ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2,2), &wsaData);
+#endif
 
     SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
     if( INVALID_SOCKET == sock)
@@ -100,7 +101,12 @@ int main(int argc, char *argv[])
     sockaddr_in  addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(SERVER_PORT);
+#ifdef _WIN32
     addr.sin_addr.S_un.S_addr = inet_addr(SERVER_IP);
+#else
+    addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+#endif
+
     int ret = connect(sock, (sockaddr*)&addr, sizeof(sockaddr_in));
     if(SOCKET_ERROR == ret)
     {
@@ -134,16 +140,23 @@ int main(int argc, char *argv[])
             FD_CLR(sock, &fdReads);
             if( -1 == processor(sock))
             {
-                closesocket(sock);
+                #ifdef _WIN32
+                    closesocket(sock);
+                    WSACleanup();
+                #else
+                    close(sock);
+                #endif
                 break;
             }
         }
     }
 
+#ifdef _WIN32
     closesocket(sock);
-
     WSACleanup();
-
+#else
+    close(sock);
+#endif
     LOG << "exit.\n";
     return 0;
     //    return a.exec();
