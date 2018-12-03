@@ -49,25 +49,37 @@ int main(int argc, char *argv[])
             LOG << "about to exit.\n";
             break;
         }
-//        else if(buf.substr(0,1)=="0")
-//        {
-//            send(sock, buf.c_str(), 0, 0);
-//        }
+        else if("login" == buf)
+        {
+            Login login{"cwj", "pwd123"};
+            DataHeader header{sizeof(Login), CMD_LOGIN};
+            send(sock, (const char*)&header, sizeof(DataHeader), 0);
+            send(sock, (const char*)&login, sizeof(Login), 0);
+            DataHeader recvHeader{};
+            LoginResult loginRet{};
+            recv(sock, (char*)&recvHeader, sizeof(DataHeader), 0);
+            recv(sock, (char*)&loginRet, sizeof(LoginResult), 0);
+            LOG << "LoginResult: " << loginRet.result;
+        }
+        else if("logout" == buf)
+        {
+            Logout logout = { "cwj" };
+            DataHeader header{sizeof(Logout), CMD_LOGOUT};
+            send(sock, (const char*)&header, sizeof(DataHeader), 0);
+            send(sock, (const char*)&logout, sizeof(Logout), 0);
+            DataHeader recvHeader{};
+            LogoutResult logoutRet{};
+            recv(sock, (char*)&recvHeader, sizeof(DataHeader), 0);
+            recv(sock, (char*)&logoutRet, sizeof(LogoutResult), 0);
+            LOG << "LogoutResult: " << logoutRet.result;
+        }
         else
         {
-            send(sock, buf.c_str(), buf.length(), 0);
-        }
-
-        char recvBuf[1024] = {0};
-        int nLen = recv(sock, recvBuf, 1024, 0);
-        if(nLen>0)
-        {
-            Data *p = (Data*)recvBuf;
-            LOG << nLen <<"\t" << p->age << p->name ;
+            LOG << "error command.\n";
         }
     }
 
-//    closesocket(sock);
+    closesocket(sock);
 
     WSACleanup();
 

@@ -55,29 +55,46 @@ int main(int argc, char *argv[])
     }
 
     // 接收消息并反馈
-    char recvBuf[1024] = {0};
-    string buf;
-    buf.reserve(1024);
     while(true)
     {
-        int nLen = recv(sockClient, recvBuf, 1024, 0);
+        DataHeader header = {};
+        int nLen = recv(sockClient, (char*)&header, sizeof(DataHeader), 0);
         if(nLen <= 0)
         {
             LOG << "recv()<=0 \n";
             break;
         }
 
-        LOG << "recv:"<<recvBuf;
-        if(strcmp(recvBuf, "getInfo") == 0)
+        LOG << "recv: cmd-" << header.cmd << "len-" << header.len;
+        switch(header.cmd)
         {
-            Data p{80, "zhangsan"};
-            send(sockClient, (const char*)&p, sizeof(Data), 0);
-        }
-        else
+        case CMD_LOGIN:
         {
-            const char msg[]{"?"};
-            send(sockClient, msg, sizeof(msg), 0);
+            Login login{};
+            recv(sockClient, (char*)&login, sizeof(Login), 0);
+                LOG << "recv: login    username-" << login.userName << "pwd-" << login.password;
+            LoginResult ret{1};
+            send(sockClient, (char*)&header, sizeof(DataHeader), 0);
+            send(sockClient, (char*)&ret, sizeof(LoginResult), 0);
         }
+            break;
+        case CMD_LOGOUT:
+        {
+            Logout logout{};
+            recv(sockClient, (char*)&logout, sizeof(Logout), 0);
+                LOG << "recv: logout    username-" << logout.useName;
+            LogoutResult ret{1};
+            send(sockClient, (char*)&header, sizeof(DataHeader), 0);
+            send(sockClient, (char*)&ret, sizeof(LogoutResult), 0);
+        }
+            break;
+        default:
+            header.cmd = CMD_ERROR;
+            header.len = 0;
+            send(sockClient, (char*)&header, sizeof(DataHeader), 0);
+            break;
+        }
+
     }
 
     closesocket(sockClient);

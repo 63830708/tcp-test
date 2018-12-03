@@ -18,14 +18,38 @@ using std::string;
 using std::cin;
 
 
-struct Data
+enum CMD
 {
-    int age;
-    char name[128];
+    CMD_LOGIN,
+    CMD_LOGOUT,
+    CMD_ERROR
+};
+struct DataHeader
+{
+    int len;
+    int cmd;
+};
+struct Login
+{
+    char userName[32];
+    char password[32];
+};
+struct LoginResult
+{
+    int result;
+};
+struct Logout
+{
+    char useName[32];
+};
+struct LogoutResult
+{
+    int result;
 };
 
 
-const char *SERVER_IP = "192.168.1.198";
+
+const char *SERVER_IP = "127.0.0.1";//"192.168.1.198";
 const int SERVER_PORT = 8899;
 
 #endif
