@@ -24,3 +24,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     server.cpp
+
+HEADERS += \
+    easytcpserver.h

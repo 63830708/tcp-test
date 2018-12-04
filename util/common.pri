@@ -1,7 +1,8 @@
 
 
 INCLUDEPATH += $$PWD
-HEADERS += util.h
+HEADERS += util.h MessageHeader.hpp
+
 
 
 
