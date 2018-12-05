@@ -1,12 +1,12 @@
 
 
 INCLUDEPATH += $$PWD
-HEADERS += util.h MessageHeader.hpp
+HEADERS += util.h MessageHeader.hpp Timestamp.hpp
 
 
 
 
-LIBS += -lws2_32
+#LIBS += -lws2_32
 
 
 CONFIG(debug, debug|release) {

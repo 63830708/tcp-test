@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 //    }
 
     // 监听
-    if(SOCKET_ERROR == server.listen(8))
+    if(SOCKET_ERROR == server.listen(50))
     {
 //        LOG << "listen() failed.\n";
         return -1;

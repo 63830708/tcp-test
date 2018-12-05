@@ -3,7 +3,8 @@
 
 #include "util.h"
 #include "MessageHeader.hpp"
-#define RECV_BUFF_SZIE 102400
+#include "Timestamp.hpp"
+#define RECV_BUFF_SZIE 10240
 
 class ClientSocket
 {
@@ -16,7 +17,15 @@ public:
     }
     SOCKET socket(){return sock;}
     char* msgBuf() { return szMsgBuf;}
-    int& lastPos() { return _lastPos;}
+
+    int getLastPos()
+    {
+        return _lastPos;
+    }
+    void setLastPos(int pos)
+    {
+        _lastPos = pos;
+    }
 
 private:
     SOCKET sock;
@@ -28,10 +37,13 @@ class EasyTcpServer
 {
     SOCKET sock;
     std::vector<ClientSocket*> g_clients;
+    Timestamp time;
+    int recvCount;
 public:
     EasyTcpServer()
     {
         sock = INVALID_SOCKET;
+        recvCount = 0;
     }
     virtual ~EasyTcpServer()
     {
@@ -128,7 +140,7 @@ public:
             g_clients.push_back(new ClientSocket(sockClient));
             LOG << "client accepted: socket-" << hex<< (int)sockClient
                 << "\tip-" << dec << inet_ntoa(addrClient.sin_addr)
-                << ":" << addrClient.sin_port<< endl;
+                << ":" << addrClient.sin_port<<"\t"<< g_clients.size()<<endl;
 
         }
         return sockClient;
@@ -175,9 +187,10 @@ public:
                 if(maxSock<g_clients[i]->socket())
                     maxSock = g_clients[i]->socket();
             }
-            LOG << "slect() start..";
-            int ret = select(maxSock+1, &fdRead, 0,0,0);// &fdWrite, &fdExp, 0);  //&t);
-            LOG << "slect() end....";
+//            LOG << "slect() start..";
+//            timeval t = { 1,0 };
+            int ret = select(maxSock+1, &fdRead, 0,0, 0);// &fdWrite, &fdExp, 0);  //&t);
+//            LOG << "slect() end....";
             if(ret < 0)
             {
                 LOG << "select() failed.";
@@ -188,6 +201,7 @@ public:
             {
                 FD_CLR(sock, &fdRead);
                 accept();
+//                return true;
             }
             for (int n = (int)g_clients.size()-1; n >= 0; n--)
             {
@@ -213,30 +227,39 @@ public:
         return sock != INVALID_SOCKET;
     }
 
-    char szRecv[409600];
+    char szRecv[RECV_BUFF_SZIE];
     int recvData(ClientSocket* s)
     {
-        int nLen = recv(s->socket(), szRecv, 409600, 0);
+        int nLen = recv(s->socket(), szRecv, RECV_BUFF_SZIE, 0);
         if(nLen <= 0)
         {
             LOG << "recv<=0\n";
             return -1;
         }
 
-        memcpy(s->msgBuf()+s->lastPos(), szRecv, nLen);
-        s->lastPos() = s->lastPos()+nLen;
-        while(s->lastPos() >= sizeof(DataHeader))
+        memcpy(s->msgBuf()+s->getLastPos(), szRecv, nLen);
+        s->setLastPos(s->getLastPos()+nLen);
+        int cur = 0;
+        while(s->getLastPos()-cur >= sizeof(DataHeader))
         {
-            DataHeader *pHeader = (DataHeader*)s->msgBuf();
-            if(s->lastPos() >= pHeader->len)
+            DataHeader *pHeader = (DataHeader*)(s->msgBuf()+cur);
+            if(s->getLastPos()-cur >= pHeader->len)
             {
-                int nSize = s->lastPos() - pHeader->len;
+                int nSize = s->getLastPos() - pHeader->len;
                 onMsg(s->socket(), pHeader);
                 memcpy(s->msgBuf(), s->msgBuf()+pHeader->len, nSize);
-                s->lastPos() = nSize;
+                s->setLastPos( nSize);
+//                cur += pHeader->len;
+//                onMsg(s->socket(), pHeader);
+
             }
             else
             {
+                if(cur)
+                {
+                    memcpy(s->msgBuf(), s->msgBuf()+cur, s->getLastPos()-cur);
+                    s->setLastPos( s->getLastPos()-cur);
+                }
                 break;
             }
         }
@@ -245,14 +268,22 @@ public:
 
     virtual void onMsg(SOCKET s, DataHeader *pHeader)
     {
+        ++recvCount;
+        auto t = time.elaspedS();
+        if(t>=1.0)
+        {
+            LOG << "time: "<<t << "\tclients: "<< g_clients.size() <<"\tpackage: "<< recvCount<< endl;
+            time.start();
+            recvCount = 0;
+        }
         switch (pHeader->cmd)
         {
         case CMD_LOGIN:
         {
             Login *login = (Login*)pHeader;
-            LOG << "recv: login result-" << login->len << endl;
-            LoginResult ret;
-            sendData(s, &ret);
+//            LOG << "recv: login result-" << login->len << endl;
+//            LoginResult ret;
+//            sendData(s, &ret);
         }
             break;
         case CMD_LOGOUT:

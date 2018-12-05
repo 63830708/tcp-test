@@ -2,8 +2,9 @@
 #define MY_UTIL_H
 
 #ifdef _WIN32
+        #define FD_SETSIZE      1024
         #define WIN32_LEAN_AND_MEAN
-//	#include<windows.h>
+        #include<windows.h>
         #include<WinSock2.h>
         #pragma comment(lib,"ws2_32.lib")
 #else
@@ -22,10 +23,10 @@
 #include <iomanip>
 #include <thread>
 
-//#pragma comment(lib, "ws2_32.lib")
-#pragma execution_character_set("utf-8")
 
-#define LOG qDebug()
+
+#define LOG std::cout
+//#define LOG qDebug()
 
 using std::endl;
 using std::string;

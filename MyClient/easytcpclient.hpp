@@ -16,8 +16,9 @@ public:
         sock = INVALID_SOCKET;
     }
     virtual ~EasyTcpClient()
-    {
+    {        
         close();
+        LOG << "~EasyTcpClient()";
     }
 
     void InitSocket()
