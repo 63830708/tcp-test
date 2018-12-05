@@ -250,18 +250,21 @@ public:
                 memcpy(s->msgBuf(), s->msgBuf()+pHeader->len, nSize);
                 s->setLastPos( nSize);
 //                cur += pHeader->len;
+                if(pHeader->len!=72)
+                {
+                    LOG << "error len\n";
+                }
 //                onMsg(s->socket(), pHeader);
-
             }
             else
-            {
-                if(cur)
-                {
-                    memcpy(s->msgBuf(), s->msgBuf()+cur, s->getLastPos()-cur);
-                    s->setLastPos( s->getLastPos()-cur);
-                }
+            {                
                 break;
             }
+        }
+        if(cur)
+        {
+            memcpy(s->msgBuf(), s->msgBuf()+cur, s->getLastPos()-cur);
+            s->setLastPos( s->getLastPos()-cur);
         }
         return 0;
     }

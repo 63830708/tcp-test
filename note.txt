@@ -1,4 +1,42 @@
-﻿
+﻿v 1.07
+修复1.06小bug, easyTcpServer文件中：
+				int cur = 0;
+				while(s->getLastPos()-cur >= sizeof(DataHeader))
+        {
+            DataHeader *pHeader = (DataHeader*)(s->msgBuf()+cur);
+            if(s->getLastPos()-cur >= pHeader->len)
+            {
+                cur += pHeader->len;
+                onMsg(s->socket(), pHeader);
+            }
+            else
+            {                
+                break;
+            }
+        }
+        if(cur)   // 这块代码放在这里（本来在while中）
+        {
+            memcpy(s->msgBuf(), s->msgBuf()+cur, s->getLastPos()-cur);
+            s->setLastPos( s->getLastPos()-cur);
+        }
+        
+
+				while(s->getLastPos() >= sizeof(DataHeader))
+        {
+            DataHeader *pHeader = (DataHeader*)s->msgBuf();
+            if(s->getLastPos() >= pHeader->len)
+            {
+                int nSize = s->getLastPos() - pHeader->len;
+                onMsg(s->socket(), pHeader);
+                memcpy(s->msgBuf(), s->msgBuf()+pHeader->len, nSize);
+                s->setLastPos( nSize);
+            }
+            else
+            {                
+                break;
+            }
+        }
+
 v 1.03
 将指令头和数据包组合起来一起发送，1.02是分开发送的。
 注意接收时的处理，先收头部，根据头部判断类型，再接受数据。
